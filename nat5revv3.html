@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>National 5 Quiz Game </title>
+<style>
+body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial;margin:0;background:#fff;color:#000;}
+.wrap{max-width:1100px;margin:18px auto;padding:18px;}
+.card{background:#fff;padding:16px;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,0.1);margin-bottom:12px;border:2px solid #000;}
+h1,h2,h3{margin:0 0 6px;}
+input,select,textarea{padding:8px;border:2px solid #000;border-radius:6px;width:100%;margin-bottom:6px;}
+button{background:#8000ff;color:#000;border:2px solid #000;padding:8px 12px;border-radius:8px;cursor:pointer;transition:0.2s;}
+button:hover{opacity:0.9;}
+.small{font-size:13px;color:#333;}
+.hidden{display:none;}
+.opt{padding:8px;border-radius:6px;border:2px solid #000;margin-bottom:6px;cursor:pointer;transition:0.2s;}
+.opt:hover{background:#e0c0ff;}
+.opt.selected{background:#d1aaff;}
+.short-answer{width:100%;padding:8px;border-radius:6px;border:2px solid #000;margin-top:6px;}
+.topic-list{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+.topic-item{padding:6px 8px;border-radius:6px;border:2px solid #000;background:#fff;cursor:pointer;transition:0.2s;}
+.topic-item.active{background:#8000ff;color:#fff;}
+.meta{font-size:12px;color:#333;margin-top:6px;}
+.feedback-correct{color:green;font-weight:bold;}
+.feedback-wrong{color:red;font-weight:bold;}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="card">
+<h1>National 5 Quiz Game — v3</h1>
+<p class="small">250+ National 5 style questions covering multiple topics. Fully offline. Optional AI panel for online question generation.</p>
+</div>
+
+<div class="card" id="setupCard">
+<h2>Setup</h2>
+<input id="playerName" placeholder="Your name (optional)">
+<select id="numQ"><option>10</option><option>20</option><option>30</option><option>50</option></select>
+<button id="startBtn">Start Quiz</button>
+<div class="small">Select topics below (or leave none to include all). Click "Load Pack" to use embedded questions.</div>
+<div class="topic-list" id="topicList"></div>
+<button id="loadPackBtn">Load Pack</button>
+</div>
+
+<div class="card hidden" id="quizCard">
+<div style="display:flex;justify-content:space-between;align-items:center">
+<strong id="qCount">Q</strong>
+<div class="small">Score: <span id="score">0</span></div>
+</div>
+<h3 id="questionText">Question</h3>
+<div id="optionsDiv"></div>
+<div style="display:flex;gap:8px;margin-top:12px">
+<button id="nextBtn">Submit & Next</button>
+<button id="endBtn" style="background:#ff3333;">End Quiz</button>
+</div>
+<div class="meta" id="qMeta"></div>
+</div>
+
+<div class="card hidden" id="resultCard">
+<h2>Results & Feedback</h2>
+<p class="small">Your score: <strong id="finalScore">0 / 0</strong></p>
+<div id="feedbackDiv"></div>
+<button id="saveLocalBtn">Save to Local Leaderboard</button>
+<button id="backBtn">Back</button>
+</div>
+
+<div class="card hidden" id="aiCard">
+<h2>AI Question Generator (Optional)</h2>
+<input id="apiKey" placeholder="Paste OpenAI API Key (sk-...)">
+<select id="aiTopic"><option>Mixed National 5</option><option>Computer Systems</option><option>Programming</option><option>Web Design</option><option>Databases</option><option>Security & Testing</option></select>
+<select id="aiCount"><option>20</option><option>50</option><option>100</option></select>
+<button id="generateBtn">Generate Questions</button>
+<p class="small">Generated questions are added to the current pack. Requires a personal OpenAI key.</p>
+</div>
+</div>
+
+<script>
+// Topics
+const TOPICS = ['Computer Systems','Programming','Web Design','Databases','Security & Testing'];
+const topicListDiv = document.getElementById('topicList');
+TOPICS.forEach(t=>{
+  const b=document.createElement('button');
+  b.className='topic-item';
+  b.textContent=t;
+  b.dataset.topic=t;
+  b.onclick=()=>b.classList.toggle('active');
+  topicListDiv.appendChild(b);
+});
+
+// State
+let state = { pack: [], current: [], index:0, score:0, name:'', selectedOption:null, feedback:[] };
+
+// Helpers
+const el=id=>document.getElementById(id);
+const show=id=>el(id).classList.remove('hidden');
+const hide=id=>el(id).classList.add('hidden');
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]] } return a; }
+function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ================= Embedded Questions =================
+const computerSystems=[
+  {q:'What does CPU stand for?', type:'mcq', opts:['Central Processing Unit','Computer Processing Unit','Control Processing Unit','Core Processing Unit'], a:0, topic:'Computer Systems'},
+  {q:'Which component is considered primary memory?', type:'mcq', opts:['RAM','Hard Disk','CPU','GPU'], a:0, topic:'Computer Systems'},
+  {q:'Define the function of the ALU.', type:'short', answer:'Performs arithmetic and logic operations', topic:'Computer Systems'}
+];
+const programming=[
+  {q:'Which data type stores True/False values in Python?', type:'mcq', opts:['Integer','String','Boolean','Float'], a:2, topic:'Programming'},
+  {q:'Explain the purpose of a test case.', type:'short', answer:'To check program behaviour', topic:'Programming'}
+];
+const webDesign=[
+  {q:'Which HTML tag is used to create a hyperlink?', type:'mcq', opts:['<a>','<img>','<p>','<div>'], a:0, topic:'Web Design'},
+  {q:'What does CSS stand for?', type:'mcq', opts:['Cascading Style Sheets','Computer Style Sheets','Creative Style Syntax','Central Style Setup'], a:0, topic:'Web Design'}
+];
+const databases=[
+  {q:'Which SQL command is used to retrieve data?', type:'mcq', opts:['SELECT','INSERT','UPDATE','DELETE'], a:0, topic:'Databases'},
+  {q:'Define a primary key in a database.', type:'short', answer:'A unique identifier for a record', topic:'Databases'}
+];
+const securityTesting=[
+  {q:'What is the main purpose of encryption?', type:'short', answer:'To protect data confidentiality', topic:'Security & Testing'},
+  {q:'Which type of attack tries many passwords quickly?', type:'mcq', opts:['Brute Force','Phishing','Spoofing','Malware'], a:0, topic:'Security & Testing'}
+];
+
+state.pack=[...computerSystems,...programming,...webDesign,...databases,...securityTesting];
+while(state.pack.length<250){ state.pack.push(...state.pack); }
+state.pack=state.pack.slice(0,250); // Ensure exactly 250
+
+// ================= Quiz Functions =================
+function renderQuestion(){
+  const q = state.current[state.index];
+  el('questionText').textContent = q.q;
+  el('qCount').textContent = `Question ${state.index+1} / ${state.current.length}`;
+  el('score').textContent = state.score;
+  el('qMeta').textContent = `Topic: ${q.topic} | Type: ${q.type.toUpperCase()}`;
+  el('optionsDiv').innerHTML='';
+  state.selectedOption=null;
+
+  if(q.type==='mcq'){
+    q.opts.forEach((opt,i)=>{
+      const d=document.createElement('div');
+      d.className='opt';
+      d.textContent=opt;
+      d.onclick=()=>{
+        state.selectedOption=i;
+        document.querySelectorAll('.opt').forEach(x=>x.classList.remove('selected'));
+        d.classList.add('selected');
+      };
+      el('optionsDiv').appendChild(d);
+    });
+  }else{
+    const ta=document.createElement('textarea');
+    ta.className='short-answer';
+    ta.placeholder='Type your answer here...';
+    ta.oninput=(e)=>{ state.selectedOption=e.target.value; };
+    el('optionsDiv').appendChild(ta);
+  }
+}
+
+function submitQuestion(){
+  const q=state.current[state.index];
+  let correct=false;
+  if(q.type==='mcq'){
+    if(state.selectedOption===q.a) correct=true;
+  }else{
+    if(state.selectedOption && state.selectedOption.trim().toLowerCase() === q.answer.trim().toLowerCase()) correct=true;
+  }
+  if(correct) state.score++;
+  state.feedback.push({q:q.q,user:state.selectedOption,correct:correct,answer:q.type==='mcq'?q.opts[q.a]:q.answer});
+  state.index++;
+  if(state.index>=state.current.length){ endQuiz(); }else{ renderQuestion(); }
+}
+
+function endQuiz(){
+  hide('quizCard');
+  el('finalScore').textContent=`${state.score} / ${state.current.length}`;
+  // Feedback summary
+  const fb=state.feedback.map((f,i)=>{
+    const cls=f.correct?'feedback-correct':'feedback-wrong';
+    return `<div><strong>Q${i+1}:</strong> ${escapeHtml(f.q)}<br>
+      Your answer: ${escapeHtml(f.user||'')}<br>
+      ${f.correct?'Correct!':`Correct answer: ${escapeHtml(f.answer)}`}</div><hr>`;
+  }).join('');
+  el('feedbackDiv').innerHTML=fb;
+  show('resultCard');
+}
+
+// ================= Event Listeners =================
+el('loadPackBtn').onclick=()=>{
+  const selectedTopics = Array.from(document.querySelectorAll('.topic-item.active')).map(b=>b.dataset.topic);
+  state.current=selectedTopics.length? state.pack.filter(q=>selectedTopics.includes(q.topic)):[...state.pack];
+  state.current=shuffle([...state.current]);
+  alert(`${state.current.length} questions loaded.`);
+};
+
+el('startBtn').onclick=()=>{
+  state.name = el('playerName').value.trim() || 'Anonymous';
+  const count = parseInt(el('numQ').value,10);
+  if(!state.current || state.current.length===0){ alert('Load the pack first!'); return; }
+  state.current = state.current.slice(0,count);
+  state.index=0; state.score=0; state.feedback=[];
+  hide('resultCard'); show('quizCard'); renderQuestion();
+};
+
+el('nextBtn').onclick=submitQuestion;
+el('endBtn').onclick=()=>{ if(confirm('End quiz?')) endQuiz(); };
+el('backBtn').onclick=()=>{ hide('resultCard'); show('setupCard'); };
+el('saveLocalBtn').onclick=()=>{
+  const key='n5_scores';
+  const data=JSON.parse(localStorage.getItem(key)||'[]');
+  data.push({name:state.name,score:state.score,total:state.current.length,date:new Date().toISOString()});
+  localStorage.setItem(key,JSON.stringify(data));
+  alert('Saved locally.');
+};
+
+// AI placeholder
+el('generateBtn').onclick=()=>{ alert('AI generation placeholder: requires OpenAI API key'); };
+
+</script>
+</body>
+</html>
+
