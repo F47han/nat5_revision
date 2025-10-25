@@ -30,12 +30,13 @@ button:hover{opacity:0.9;}
 <div class="wrap">
 <div class="card">
 <h1>National 5 Quiz Game — v3</h1>
-<p class="small">250+ National 5 style questions covering multiple topics. Fully offline. Optional AI panel for online question generation.</p>
+<p class="small">250+ National 5 style questions covering multiple topics. Fully offline. </p>
 </div>
 
 <div class="card" id="setupCard">
 <h2>Setup</h2>
 <input id="playerName" placeholder="Your name (optional)">
+<p>Number of Questions</p>
 <select id="numQ"><option>10</option><option>20</option><option>30</option><option>50</option></select>
 <button id="startBtn">Start Quiz</button>
 <div class="small">Select topics below (or leave none to include all). Click "Load Pack" to use embedded questions.</div>
@@ -218,4 +219,5 @@ el('generateBtn').onclick=()=>{ alert('AI generation placeholder: requires OpenA
 </script>
 </body>
 </html>
+
 
