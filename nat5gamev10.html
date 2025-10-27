@@ -1,0 +1,892 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>nat5gamev10.html — National 5 Quiz (v10)</title>
+<meta name="description" content="National 5 revision quiz v10 — responsive, 360 questions, MCQ/Short/TF, retry wrong, gamified review.">
+<style>
+  :root{
+    --purple:#7b3cff;
+    --purple-dark:#5a20d9;
+    --glow-start:#5fb0ff;
+    --glow-end:#b78bff;
+    --muted:#6b7280;
+    --white:#ffffff;
+    --black:#000000;
+    --card-radius:16px;
+    --max-width:1200px;
+  }
+  html,body{height:100%;margin:0}
+  body{
+    font-family:Inter,system-ui,Segoe UI,Roboto,Arial;
+    background: linear-gradient(180deg,var(--purple),var(--purple-dark));
+    color:var(--black);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:22px;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+  }
+
+  .viewport{
+    width:100%;
+    max-width:var(--max-width);
+    background:var(--white);
+    border-radius:var(--card-radius);
+    box-shadow: 0 18px 50px rgba(2,6,23,0.28);
+    padding:20px;
+    border: 3px solid rgba(0,0,0,0.06);
+  }
+
+  .topbar{display:flex;align-items:center;gap:12px;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap}
+  .brand{font-weight:800;color:var(--glow-end);font-size:20px;letter-spacing:.2px}
+  .small{font-size:13px;color:var(--muted)}
+
+  .card{background:var(--white);padding:14px;border-radius:12px;margin-bottom:14px;border:2px solid rgba(0,0,0,0.06)}
+  h1,h2,h3{margin:0 0 8px}
+  input,select,textarea,button{font-family:inherit;font-size:14px}
+  input,select,textarea{
+    padding:8px;border:2px solid var(--black);border-radius:10px;width:100%;box-sizing:border-box;background:#fff;color:var(--black)
+  }
+
+  button{
+    background:linear-gradient(90deg,var(--glow-start),var(--glow-end));
+    color:#fff;border:2px solid var(--black);padding:10px 14px;border-radius:12px;cursor:pointer;
+    transition:transform .12s ease, box-shadow .12s ease, opacity .12s;
+    box-shadow: 0 8px 24px rgba(91,142,255,0.12);
+  }
+  button.secondary{background:#fff;color:var(--black);box-shadow:none}
+  button:active{transform:translateY(1px)}
+  .controls{display:flex;gap:8px;flex-wrap:wrap}
+
+  .topic-list{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+  .topic-item{
+    padding:8px 12px;border-radius:12px;border:2px solid var(--black);background:#fff;color:var(--black);
+    cursor:pointer;transition:transform .12s, background .12s, box-shadow .12s;
+  }
+  .topic-item:hover{transform:translateY(-3px)}
+  .topic-item.active{background:linear-gradient(90deg,var(--glow-start),var(--glow-end));color:var(--black);border-color:var(--black);font-weight:700;box-shadow:0 10px 30px rgba(91,142,255,0.12)}
+
+  .setup-row{display:flex;gap:12px;align-items:center}
+  .setup-row > *{flex:1;min-width:0}
+
+  #quizCard h3{margin:0 0 8px;font-size:18px}
+  .opt{padding:12px;border-radius:12px;border:2px solid var(--black);margin-bottom:10px;cursor:pointer;transition:background .12s,transform .08s, box-shadow .12s}
+  .opt:hover{transform:translateY(-2px)}
+  .opt.selected{background:#f3e8ff;border-color:var(--purple);box-shadow:0 6px 18px rgba(91,142,255,0.07)}
+  .opt.correct{background:#d6ffea;border-color:green}
+  .opt.wrong{background:#ffd6d6;border-color:red}
+  .short-answer{padding:12px;border-radius:12px;border:2px solid var(--black);width:100%;min-height:56px}
+  .meta{font-size:12px;color:var(--muted);margin-top:6px}
+
+  .progress-wrap{height:12px;background:#f1f5f9;border-radius:999px;overflow:hidden;border:2px solid rgba(0,0,0,0.06)}
+  .progress{height:100%;width:0%;background:linear-gradient(90deg,var(--glow-start),var(--glow-end));transition:width .25s ease}
+
+  .feedback-item{padding:12px;border-radius:10px;border:1px solid #eee;margin-bottom:10px}
+  .feedback-correct{color:green;font-weight:700}
+  .feedback-wrong{color:red;font-weight:700}
+
+  .score-anim{display:inline-block;transform-origin:center;transition:transform .35s cubic-bezier(.2,.9,.2,1)}
+  .score-anim.bounce{transform:scale(1.18);}
+
+  .hidden{display:none}
+  @media(max-width:860px){ .setup-row{flex-direction:column;gap:8px} .topbar{flex-direction:column;align-items:flex-start} }
+</style>
+</head>
+<body>
+  <main class="viewport" role="main" aria-labelledby="title">
+    <div class="topbar">
+      <div>
+        <div id="title" class="brand">National 5 — v10#</div>
+        <div class="small">Mixed-difficulty practice — multiple choice, true/false, short answers</div>
+      </div>
+      <div class="small">Shareable HTML — no signup</div>
+    </div>
+
+    <!-- SETUP -->
+    <section class="card" id="setupCard">
+      <h2>Setup</h2>
+      <div class="setup-row" style="margin-top:10px;margin-bottom:6px">
+        <input id="playerName" placeholder="Your name (optional)" aria-label="Your name"/>
+        <div style="width:160px">
+          <div id="numQLabel" class="small" style="margin-bottom:6px">Number of questions: 10</div>
+          <select id="numQ" aria-label="Number of questions"><option>10</option><option>20</option><option>30</option><option>50</option><option>100</option></select>
+        </div>
+        <div style="width:240px">
+          <div class="small" style="margin-bottom:6px">Type of questions</div>
+          <select id="answerMode" title="Choose answer mode" aria-label="Type of questions" style="margin-bottom:6px">
+            <option value="mixed">Mixed (MCQ + Short + TF)</option>
+            <option value="mcq">Multiple choice only</option>
+            <option value="short">Short answer only</option>
+            <option value="tf">True/False only</option>
+          </select>
+          <button id="startBtn" style="width:100%">Start Quiz</button>
+        </div>
+      </div>
+
+      <div class="small" style="margin-bottom:6px">Select topics (click to toggle). If none selected, all topics will be included.</div>
+      <div class="topic-list" id="topicList" aria-label="Topic list"></div>
+
+      <div style="margin-top:12px" class="controls">
+        <button id="loadPackBtn" class="secondary" title="Load internal pack">Load Pack (internal)</button>
+        <button id="previewBtn" title="Preview sample questions">Preview sample</button>
+        <button id="resetBtn" class="secondary" title="Reset selection">Reset</button>
+      </div>
+    </section>
+
+    <!-- QUIZ -->
+    <section class="card hidden" id="quizCard" aria-live="polite">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap">
+        <div style="flex:1;min-width:220px">
+          <div id="qCount" style="font-weight:700">Question 1 / 10</div>
+          <div style="margin-top:8px" class="progress-wrap"><div id="progress" class="progress"></div></div>
+        </div>
+        <div style="width:140px;text-align:right">
+          <div class="small">Score</div>
+          <div style="font-weight:800;font-size:20px" id="score"><span id="scoreNum" class="score-anim">0</span></div>
+        </div>
+      </div>
+
+      <h3 id="questionText">Question</h3>
+      <div id="optionsDiv" style="margin-top:10px"></div>
+
+      <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+        <button id="submitBtn">Submit</button>
+        <button id="nextBtn" class="secondary">Skip / Next</button>
+        <button id="endBtn" class="secondary">End Quiz</button>
+      </div>
+      <div class="meta" id="qMeta"></div>
+    </section>
+
+    <!-- RESULTS -->
+    <section class="card hidden" id="resultCard">
+      <h2>Results & Review</h2>
+      <div class="small">Final score: <strong id="finalScore">0 / 0</strong></div>
+      <div id="encouragement" class="small" style="margin:8px 0"></div>
+      <div id="feedbackDiv" style="margin-top:12px;max-height:420px;overflow:auto"></div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+        <button id="retryWrongBtn">Retry Wrong Questions</button>
+        <button id="saveLocalBtn" class="secondary">Save Score Locally</button>
+        <button id="restartBtn" class="secondary">Take Another Quiz</button>
+      </div>
+    </section>
+  </main>
+
+<script>
+/* ================= Utilities ================= */
+const el = id => document.getElementById(id);
+function safe(id){ return document.getElementById(id); }
+function hide(id){ const e=safe(id); if(e) e.classList.add('hidden'); }
+function show(id){ const e=safe(id); if(e) e.classList.remove('hidden'); }
+const rnd = n => Math.floor(Math.random()*n);
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]] } return a; }
+function clamp(v,min,max){return Math.max(min,Math.min(max,v));}
+function escapeHtml(s){ if(s === null || typeof s === 'undefined') return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* ================= Topics ================= */
+const TOPICS = [
+  'Software Design & Development',
+  'Computer Systems',
+  'Databases',
+  'Web Design & Development',
+  'Data Representation',
+  'Computer Systems – Impact and Security'
+];
+const topicList = el('topicList');
+TOPICS.forEach(t=>{
+  const b = document.createElement('button');
+  b.className = 'topic-item';
+  b.type = 'button';
+  b.textContent = t;
+  b.dataset.topic = t;
+  b.addEventListener('click', ()=> b.classList.toggle('active'));
+  topicList.appendChild(b);
+});
+
+/* ================= Full question pack (explicit) =================
+   The user asked to embed all questions and answers directly.
+   We'll build a pack array with objects:
+   - type: 'mcq'|'tf'|'short'
+   - q: question text
+   - opts: [option1,option2,option3,option4] (only for mcq)
+   - a: index (0..3) of correct option (for mcq)
+   - answer: boolean for tf, string for short
+   - topic: topic string
+*/
+
+/* === Helper constructors === */
+function mcqObj(q, opts, correctIndex, topic){
+  return {type:'mcq', q: q, opts: opts, a: correctIndex, topic: topic};
+}
+function tfObj(q, boolAnswer, topic){
+  return {type:'tf', q: q, answer: !!boolAnswer, topic: topic};
+}
+function shortObj(q, answerText, topic){
+  return {type:'short', q: q, answer: answerText, topic: topic};
+}
+
+/* ========================= Actual data from user =========================
+   Topic 1: Software Design & Development (60 items: 20 MCQ, 20 TF, 20 ST)
+*/
+const pack = [];
+
+/* ---------- Topic 1 MCQ (20) ---------- */
+const T1 = 'Software Design & Development';
+pack.push(mcqObj("What is an algorithm?", ["A programming language", "A step-by-step solution", "A computer virus", "A compiler"], 1, T1));
+pack.push(mcqObj("What does a variable store?", ["A fixed value", "A changing value", "A loop", "A function"], 1, T1));
+pack.push(mcqObj("Which of the following is a data type?", ["Loop", "Integer", "Compiler", "Syntax"], 1, T1));
+pack.push(mcqObj("What is the purpose of a loop?", ["To store data", "To repeat instructions", "To define a function", "To sort data"], 1, T1));
+pack.push(mcqObj("Which of the following is a conditional statement?", ["FOR", "WHILE", "IF", "PRINT"], 2, T1));
+pack.push(mcqObj("What does the term \"syntax\" refer to?", ["Program output", "Programming rules", "Variable name", "Loop type"], 1, T1));
+pack.push(mcqObj("What is a function?", ["A loop", "A reusable block of code", "A variable", "A data type"], 1, T1));
+pack.push(mcqObj("Which of the following is a logic gate?", ["AND", "LOOP", "PRINT", "VARIABLE"], 0, T1));
+pack.push(mcqObj("What does the term \"iteration\" mean?", ["Storing data", "Repeating a process", "Creating a function", "Ending a loop"], 1, T1));
+pack.push(mcqObj("What is a syntax error?", ["Incorrect logic", "Wrong output", "Rule violation in code", "Slow performance"], 2, T1));
+pack.push(mcqObj("Which of the following is a valid variable name?", ["1value", "value_1", "value-1", "value 1"], 1, T1));
+pack.push(mcqObj("What does the term \"selection\" mean in programming?", ["Choosing between options", "Repeating instructions", "Storing data", "Printing output"], 0, T1));
+pack.push(mcqObj("What is the purpose of a flowchart?", ["To store data", "To represent program logic visually", "To compile code", "To encrypt data"], 1, T1));
+pack.push(mcqObj("Which of the following is a loop structure?", ["IF", "ELSE", "WHILE", "PRINT"], 2, T1));
+pack.push(mcqObj("What does the term \"input\" refer to?", ["Data displayed", "Data entered", "Data stored", "Data deleted"], 1, T1));
+pack.push(mcqObj("What is the output of PRINT 2 + 3?", ["5", "23", "2 + 3", "Error"], 0, T1));
+pack.push(mcqObj("What is a logic error?", ["Incorrect syntax", "Incorrect output despite correct syntax", "Missing variable", "Slow program"], 1, T1));
+pack.push(mcqObj("What is the purpose of a test plan?", ["To store data", "To check program correctness", "To compile code", "To encrypt files"], 1, T1));
+pack.push(mcqObj("What is a trace table used for?", ["To test logic", "To track variable values", "To store data", "To print output"], 1, T1));
+pack.push(mcqObj("What does the term \"output\" refer to?", ["Data entered", "Data stored", "Data displayed", "Data deleted"], 2, T1));
+
+/* ---------- Topic 1 TF (20) ---------- */
+pack.push(tfObj("An algorithm is a set of instructions.", true, T1));
+pack.push(tfObj("A loop runs only once.", false, T1));
+pack.push(tfObj("A variable stores changing data.", true, T1));
+pack.push(tfObj("Syntax errors prevent code from running.", true, T1));
+pack.push(tfObj("A function is a type of loop.", false, T1));
+pack.push(tfObj("Selection involves choosing between options.", true, T1));
+pack.push(tfObj("A trace table is used to store data.", false, T1));
+pack.push(tfObj("Logic errors are caused by incorrect syntax.", false, T1));
+pack.push(tfObj("The IF statement is used for selection.", true, T1));
+pack.push(tfObj("A flowchart is used to represent logic visually.", true, T1));
+pack.push(tfObj("The WHILE loop repeats instructions.", true, T1));
+pack.push(tfObj("PRINT is used to display output.", true, T1));
+pack.push(tfObj("A test plan is used to encrypt data.", false, T1));
+pack.push(tfObj("A valid variable name can start with a number.", false, T1));
+pack.push(tfObj("Input refers to data entered into a program.", true, T1));
+pack.push(tfObj("A function can be reused in a program.", true, T1));
+pack.push(tfObj("A syntax error causes incorrect output.", false, T1));
+pack.push(tfObj("The term \"iteration\" means repeating a process.", true, T1));
+pack.push(tfObj("Logic gates are used in software design.", true, T1));
+pack.push(tfObj("A program with no errors always gives correct output.", false, T1));
+
+/* ---------- Topic 1 Short Text (20) ---------- */
+pack.push(shortObj("What is a variable?", "A named storage location for data", T1));
+pack.push(shortObj("What is a loop used for?", "Repeating a set of instructions", T1));
+pack.push(shortObj("What is an algorithm?", "A step-by-step solution to a problem", T1));
+pack.push(shortObj("What is a syntax error?", "A mistake in the code's structure or rules", T1));
+pack.push(shortObj("What is a function?", "A reusable block of code", T1));
+pack.push(shortObj("What does selection mean in programming?", "Choosing between different actions based on conditions", T1));
+pack.push(shortObj("What is a trace table?", "A table used to track variable values during execution", T1));
+pack.push(shortObj("What is a logic error?", "An error where the program runs but gives incorrect output", T1));
+pack.push(shortObj("What is a flowchart?", "A diagram that shows the steps in a process", T1));
+pack.push(shortObj("What is the purpose of a test plan?", "To check if a program works correctly", T1));
+pack.push(shortObj("What is input?", "Data entered into a program", T1));
+pack.push(shortObj("What is output?", "Data displayed by a program", T1));
+pack.push(shortObj("What is the IF statement used for?", "Making decisions in code", T1));
+pack.push(shortObj("What is iteration?", "Repeating a process", T1));
+pack.push(shortObj("What is a valid variable name?", "A name that follows naming rules and doesn’t start with a number", T1));
+pack.push(shortObj("What is the PRINT command used for?", "Displaying output", T1));
+pack.push(shortObj("What is a logic gate?", "A device that performs a logical operation", T1));
+pack.push(shortObj("What is the WHILE loop used for?", "Repeating instructions while a condition is true", T1));
+pack.push(shortObj("What is a data type?", "A classification of data (e.g., integer, string)", T1));
+pack.push(shortObj("What is program testing?", "Checking if a program behaves as expected", T1));
+
+/* =========================
+   Topic 2: Computer Systems (60 items)
+   Provided content: 20 MCQ, 20 TF, 20 ST
+   Topic name in UI: "Computer Systems"
+*/
+const T2 = 'Computer Systems';
+/* MCQ (20) */
+pack.push(mcqObj("What does RAM stand for?", ["Random Access Memory", "Read Access Module", "Rapid Application Manager", "Remote Access Memory"], 0, T2));
+pack.push(mcqObj("Which component is considered the brain of the computer?", ["RAM", "CPU", "Hard Drive", "GPU"], 1, T2));
+pack.push(mcqObj("What type of memory is non-volatile?", ["RAM", "ROM", "Cache", "Register"], 1, T2));
+pack.push(mcqObj("Which device is used for input?", ["Monitor", "Printer", "Keyboard", "Speaker"], 2, T2));
+pack.push(mcqObj("What is the purpose of the hard drive?", ["Process data", "Store data permanently", "Display output", "Input data"], 1, T2));
+pack.push(mcqObj("Which of the following is an output device?", ["Mouse", "Keyboard", "Monitor", "Scanner"], 2, T2));
+pack.push(mcqObj("What does the CPU do?", ["Stores data", "Executes instructions", "Inputs data", "Displays graphics"], 1, T2));
+pack.push(mcqObj("Which of the following is a storage device?", ["RAM", "CPU", "SSD", "GPU"], 2, T2));
+pack.push(mcqObj("What is the function of ROM?", ["Temporary storage", "Permanent instructions", "Display output", "Input data"], 1, T2));
+pack.push(mcqObj("Which of the following is volatile memory?", ["ROM", "SSD", "RAM", "Hard Drive"], 2, T2));
+pack.push(mcqObj("What does GPU stand for?", ["General Processing Unit", "Graphics Processing Unit", "Global Power Unit", "Graphical Program Utility"], 1, T2));
+pack.push(mcqObj("Which of the following is used to cool the CPU?", ["Fan", "RAM", "SSD", "Monitor"], 0, T2));
+pack.push(mcqObj("What is the purpose of cache memory?", ["Long-term storage", "Temporary high-speed access", "Display graphics", "Input data"], 1, T2));
+pack.push(mcqObj("Which of the following is an example of secondary storage?", ["RAM", "ROM", "Hard Drive", "Cache"], 2, T2));
+pack.push(mcqObj("What does the motherboard do?", ["Stores data", "Connects all components", "Inputs data", "Displays output"], 1, T2));
+pack.push(mcqObj("Which of the following is NOT an input device?", ["Microphone", "Mouse", "Printer", "Scanner"], 2, T2));
+pack.push(mcqObj("What is the purpose of the power supply unit?", ["Store data", "Provide electricity", "Display output", "Input data"], 1, T2));
+pack.push(mcqObj("Which of the following is used to display visual output?", ["Monitor", "Keyboard", "Mouse", "Speaker"], 0, T2));
+pack.push(mcqObj("What is the function of the operating system?", ["Manage hardware and software", "Store data", "Input data", "Display graphics"], 0, T2));
+pack.push(mcqObj("Which of the following is an example of embedded systems?", ["Laptop", "Smartphone", "Washing machine", "Desktop PC"], 2, T2));
+
+/* TF (20) */
+pack.push(tfObj("RAM is temporary memory.", true, T2));
+pack.push(tfObj("ROM is volatile memory.", false, T2));
+pack.push(tfObj("The CPU executes instructions.", true, T2));
+pack.push(tfObj("A keyboard is an output device.", false, T2));
+pack.push(tfObj("A monitor displays visual output.", true, T2));
+pack.push(tfObj("Cache memory is slower than RAM.", false, T2));
+pack.push(tfObj("The hard drive is used for permanent storage.", true, T2));
+pack.push(tfObj("The GPU processes graphics.", true, T2));
+pack.push(tfObj("The motherboard connects all components.", true, T2));
+pack.push(tfObj("A printer is an input device.", false, T2));
+pack.push(tfObj("ROM stores permanent instructions.", true, T2));
+pack.push(tfObj("RAM retains data when the power is off.", false, T2));
+pack.push(tfObj("The operating system manages hardware and software.", true, T2));
+pack.push(tfObj("A microphone is an input device.", true, T2));
+pack.push(tfObj("The power supply unit stores data.", false, T2));
+pack.push(tfObj("An SSD is a type of storage device.", true, T2));
+pack.push(tfObj("The CPU is also known as the brain of the computer.", true, T2));
+pack.push(tfObj("A scanner is an output device.", false, T2));
+pack.push(tfObj("Cache memory provides fast access to frequently used data.", true, T2));
+pack.push(tfObj("Embedded systems are found in washing machines.", true, T2));
+
+/* Short Text (20) */
+pack.push(shortObj("What does RAM stand for?", "Random Access Memory", T2));
+pack.push(shortObj("What is the function of the CPU?", "Executes instructions and processes data", T2));
+pack.push(shortObj("What is ROM used for?", "Storing permanent instructions", T2));
+pack.push(shortObj("Name one input device.", "Keyboard", T2));
+pack.push(shortObj("Name one output device.", "Monitor", T2));
+pack.push(shortObj("What is the purpose of the hard drive?", "Permanent data storage", T2));
+pack.push(shortObj("What does GPU stand for?", "Graphics Processing Unit", T2));
+pack.push(shortObj("What is cache memory?", "High-speed memory for frequently accessed data", T2));
+pack.push(shortObj("What does the motherboard do?", "Connects all computer components", T2));
+pack.push(shortObj("What is the function of the power supply unit?", "Provides electrical power to the system", T2));
+pack.push(shortObj("What is an SSD?", "Solid State Drive", T2));
+pack.push(shortObj("What is the operating system responsible for?", "Managing hardware and software", T2));
+pack.push(shortObj("What is an embedded system?", "A computer system within a larger device", T2));
+pack.push(shortObj("What is volatile memory?", "Memory that loses data when power is off", T2));
+pack.push(shortObj("What is non-volatile memory?", "Memory that retains data without power", T2));
+pack.push(shortObj("What is the purpose of a fan in a computer?", "To cool the CPU", T2));
+pack.push(shortObj("What is secondary storage?", "Long-term data storage", T2));
+pack.push(shortObj("What is the function of a scanner?", "Converts physical documents into digital format", T2));
+pack.push(shortObj("What is the role of cache memory?", "Speeds up access to frequently used data", T2));
+pack.push(shortObj("What is the main function of the operating system?", "Controls and coordinates hardware and software", T2));
+
+/* =========================
+   Topic 3: Databases (60 items)
+*/
+const T3 = 'Databases';
+/* MCQ (20) */
+pack.push(mcqObj("Which SQL command is used to retrieve data?", ["SELECT","INSERT","DELETE","UPDATE"], 0, T3));
+pack.push(mcqObj("What is a primary key?", ["A field used for sorting","A unique identifier","A foreign key","A table name"], 1, T3));
+pack.push(mcqObj("Which of the following is a data type used in databases?", ["Integer","Loop","Boolean","Float"], 0, T3)); // user listed Integer as A
+pack.push(mcqObj("What does the SQL command DELETE do?", ["Adds data","Removes data","Changes data","Retrieves data"], 1, T3));
+pack.push(mcqObj("Which of the following is a relational database?", ["MongoDB","MySQL","Redis","Firebase"], 1, T3));
+pack.push(mcqObj("What is a foreign key used for?", ["To store images","To link tables","To sort data","To encrypt data"], 1, T3));
+pack.push(mcqObj("Which SQL command adds new data to a table?", ["SELECT","INSERT","DELETE","UPDATE"], 1, T3));
+pack.push(mcqObj("What does the UPDATE command do in SQL?", ["Deletes records","Changes existing data","Adds new rows","Creates a table"], 1, T3));
+pack.push(mcqObj("Which of the following is a NoSQL database type?", ["Document store","Table store","Spreadsheet","Relational"], 0, T3));
+pack.push(mcqObj("What is a database table?", ["A collection of rows and columns","A single value","A command","A file format"], 0, T3));
+pack.push(mcqObj("Which of these is a valid SQL clause?", ["WHERE","LOOP","PRINT","CASE"], 0, T3));
+pack.push(mcqObj("What does the term \"record\" refer to in a database?", ["A column","A row","A table","A field"], 1, T3));
+pack.push(mcqObj("Which of the following is used to filter results in SQL?", ["ORDER BY","WHERE","SELECT","INSERT"], 1, T3));
+pack.push(mcqObj("What is the purpose of the ORDER BY clause?", ["To delete rows","To sort results","To link tables","To update data"], 1, T3));
+pack.push(mcqObj("Which of the following is a valid field name?", ["1name","name_1","name-1","name 1"], 1, T3));
+pack.push(mcqObj("What is the result of SELECT * FROM students?", ["Deletes all students","Updates student names","Retrieves all student data","Adds a new student"], 2, T3));
+pack.push(mcqObj("Which of the following is a benefit of using a database?", ["Manual sorting","Data redundancy","Efficient data management","Slow access"], 2, T3));
+pack.push(mcqObj("What does the term \"field\" refer to in a database?", ["A row","A column","A table","A query"], 1, T3));
+pack.push(mcqObj("Which of the following is used to define the structure of a table?", ["SELECT","CREATE TABLE","INSERT","DELETE"], 1, T3));
+pack.push(mcqObj("What is the purpose of a query?", ["To retrieve specific data","To store images","To encrypt data","To print reports"], 0, T3));
+
+/* TF (20) */
+pack.push(tfObj("A primary key must be unique.", true, T3));
+pack.push(tfObj("The SELECT command deletes data.", false, T3));
+pack.push(tfObj("A foreign key links two tables together.", true, T3));
+pack.push(tfObj("SQL stands for Structured Query Language.", true, T3));
+pack.push(tfObj("A record is a column in a table.", false, T3));
+pack.push(tfObj("The INSERT command adds new data.", true, T3));
+pack.push(tfObj("A table can have multiple primary keys.", false, T3));
+pack.push(tfObj("The UPDATE command changes existing data.", true, T3));
+pack.push(tfObj("A database table is made up of rows and columns.", true, T3));
+pack.push(tfObj("The DELETE command retrieves data.", false, T3));
+pack.push(tfObj("A query is used to filter or retrieve data.", true, T3));
+pack.push(tfObj("A field is a single piece of data in a record.", true, T3));
+pack.push(tfObj("The WHERE clause is used to sort data.", false, T3));
+pack.push(tfObj("A NoSQL database uses tables and rows.", false, T3));
+pack.push(tfObj("The ORDER BY clause arranges data in a specific order.", true, T3));
+pack.push(tfObj("SQL is used only for web development.", false, T3));
+pack.push(tfObj("A relational database stores data in tables.", true, T3));
+pack.push(tfObj("A record can contain multiple fields.", true, T3));
+pack.push(tfObj("The CREATE TABLE command defines a new table.", true, T3));
+pack.push(tfObj("A query can only return one result.", false, T3));
+
+/* Short (20) */
+pack.push(shortObj("What does SQL stand for?", "Structured Query Language", T3));
+pack.push(shortObj("What is a primary key used for?", "To uniquely identify each record", T3));
+pack.push(shortObj("What is a foreign key?", "A field that links to a primary key in another table", T3));
+pack.push(shortObj("What does the SELECT command do?", "Retrieves data from a table", T3));
+pack.push(shortObj("What is a database table?", "A collection of rows and columns", T3));
+pack.push(shortObj("What does the INSERT command do?", "Adds new data to a table", T3));
+pack.push(shortObj("What is a record in a database?", "A row of related data", T3));
+pack.push(shortObj("What is a field in a database?", "A column that stores a specific type of data", T3));
+pack.push(shortObj("What does the UPDATE command do?", "Modifies existing data", T3));
+pack.push(shortObj("What is the purpose of the DELETE command?", "To remove data from a table", T3));
+pack.push(shortObj("What is a query?", "A request to retrieve or manipulate data", T3));
+pack.push(shortObj("What does the WHERE clause do?", "Filters results based on conditions", T3));
+pack.push(shortObj("What is the ORDER BY clause used for?", "To sort query results", T3));
+pack.push(shortObj("What is a NoSQL database?", "A database that stores data in formats other than tables", T3));
+pack.push(shortObj("What is the CREATE TABLE command used for?", "To define a new table structure", T3));
+pack.push(shortObj("What is meant by “data redundancy”?", "Unnecessary duplication of data", T3));
+pack.push(shortObj("What is a relational database?", "A database that stores data in related tables", T3));
+pack.push(shortObj("What is the purpose of a database?", "To store and manage structured data", T3));
+pack.push(shortObj("What is a field name?", "The label for a column in a table", T3));
+pack.push(shortObj("What does SELECT * FROM table_name do?", "Retrieves all data from the specified table", T3));
+
+/* =========================
+   Topic 4: Web Design & Development (60)
+*/
+const T4 = 'Web Design & Development';
+/* MCQ (20) */
+pack.push(mcqObj("Which HTML tag is used to create a hyperlink?", ["<a>", "<img>", "<div>", "<p>"], 0, T4));
+pack.push(mcqObj("What does CSS stand for?", ["Cascading Style Sheets","Computer Style Syntax","Central Style Setup","Creative Style Sheets"], 0, T4));
+pack.push(mcqObj("Which attribute sets the image source in HTML?", ["src","href","alt","title"], 0, T4));
+pack.push(mcqObj("What is the purpose of the <h1> tag?", ["Create a heading","Insert an image","Add a link","Format text"], 0, T4));
+pack.push(mcqObj("Which HTML tag is used to insert an image?", ["<img>","<a>","<p>","<div>"], 0, T4));
+pack.push(mcqObj("Which CSS property changes text colour?", ["color","font-size","background-color","text-align"], 0, T4));
+pack.push(mcqObj("What does the <ul> tag represent?", ["Unordered list","Underlined text","Upload link","Uppercase label"], 0, T4));
+pack.push(mcqObj("Which of the following is a block-level element?", ["<div>","<span>","<a>","<img>"], 0, T4));
+pack.push(mcqObj("What does the href attribute define?", ["Link destination","Image source","Font style","Background colour"], 0, T4));
+pack.push(mcqObj("Which CSS property controls spacing outside an element?", ["margin","padding","border","width"], 0, T4));
+pack.push(mcqObj("Which tag is used for paragraph text?", ["<p>","<div>","<span>","<h1>"], 0, T4));
+pack.push(mcqObj("What does the <br> tag do?", ["Inserts a line break","Adds bold text","Creates a border","Starts a new paragraph"], 0, T4));
+pack.push(mcqObj("Which CSS property adjusts the space inside an element?", ["padding","margin","border","display"], 0, T4));
+pack.push(mcqObj("What does the <form> tag define?", ["A user input area","A table","A heading","A link"], 0, T4));
+pack.push(mcqObj("Which tag is used to create a table row?", ["<tr>","<td>","<th>","<table>"], 0, T4));
+pack.push(mcqObj("Which CSS property sets the font size?", ["font-size","text-size","size","font-style"], 0, T4));
+pack.push(mcqObj("What does the <head> section contain?", ["Metadata","Visible content","Images","Links"], 0, T4));
+pack.push(mcqObj("Which tag is used to define a list item?", ["<li>","<ul>","<ol>","<dl>"], 0, T4));
+pack.push(mcqObj("Which CSS property sets the layout type?", ["display","layout","structure","format"], 0, T4));
+pack.push(mcqObj("What does the <title> tag define?", ["Page title in browser","Main heading","Link text","Image caption"], 0, T4));
+
+/* TF (20) */
+pack.push(tfObj("The <a> tag is used to create hyperlinks.", true, T4));
+pack.push(tfObj("CSS can be used to change font styles.", true, T4));
+pack.push(tfObj("The <img> tag is used to create a table.", false, T4));
+pack.push(tfObj("The src attribute is used to define a link destination.", false, T4));
+pack.push(tfObj("The <p> tag creates a paragraph.", true, T4));
+pack.push(tfObj("The color property in CSS changes background colour.", false, T4));
+pack.push(tfObj("The <div> tag is a block-level element.", true, T4));
+pack.push(tfObj("The href attribute is used in the <a> tag.", true, T4));
+pack.push(tfObj("The <ul> tag creates an ordered list.", false, T4));
+pack.push(tfObj("The margin property controls spacing inside an element.", false, T4));
+pack.push(tfObj("The <br> tag adds a line break.", true, T4));
+pack.push(tfObj("The <form> tag is used for user input.", true, T4));
+pack.push(tfObj("The <head> section is visible on the webpage.", false, T4));
+pack.push(tfObj("The padding property adds space inside an element.", true, T4));
+pack.push(tfObj("The <li> tag is used for list items.", true, T4));
+pack.push(tfObj("The font-size property sets the font colour.", false, T4));
+pack.push(tfObj("The <title> tag appears in the browser tab.", true, T4));
+pack.push(tfObj("The <table> tag is used to create a table.", true, T4));
+pack.push(tfObj("The display property can be set to flex.", true, T4));
+pack.push(tfObj("The <span> tag is a block-level element.", false, T4));
+
+/* Short (20) */
+pack.push(shortObj("What does the <a> tag do?", "Creates a hyperlink", T4));
+pack.push(shortObj("What does CSS stand for?", "Cascading Style Sheets", T4));
+pack.push(shortObj("What is the purpose of the src attribute?", "To define the image source", T4));
+pack.push(shortObj("What does the <h1> tag represent?", "A top-level heading", T4));
+pack.push(shortObj("What does the color property do in CSS?", "Changes text colour", T4));
+pack.push(shortObj("What is the purpose of the <ul> tag?", "Creates an unordered list", T4));
+pack.push(shortObj("What does the href attribute define?", "The destination of a hyperlink", T4));
+pack.push(shortObj("What is the function of the <div> tag?", "Defines a block-level container", T4));
+pack.push(shortObj("What does the margin property control?", "Spacing outside an element", T4));
+pack.push(shortObj("What does the <p> tag do?", "Creates a paragraph", T4));
+pack.push(shortObj("What is the purpose of the <br> tag?", "Inserts a line break", T4));
+pack.push(shortObj("What does the <form> tag define?", "A section for user input", T4));
+pack.push(shortObj("What does the <tr> tag create?", "A table row", T4));
+pack.push(shortObj("What does the font-size property do?", "Sets the size of text", T4));
+pack.push(shortObj("What is stored in the <head> section?", "Metadata and links to styles/scripts", T4));
+pack.push(shortObj("What does the <li> tag define?", "A list item", T4));
+pack.push(shortObj("What does the display property control?", "The layout type of an element", T4));
+pack.push(shortObj("What does the <title> tag do?", "Sets the page title in the browser tab", T4));
+pack.push(shortObj("What does the <img> tag do?", "Inserts an image", T4));
+pack.push(shortObj("What is responsive design?", "Design that adapts to different screen sizes", T4));
+
+/* =========================
+   Topic 5: Data Representation (45)
+   (15 MCQ, 15 TF, 15 Short)
+*/
+const T5 = 'Data Representation';
+/* MCQ (15) */
+pack.push(mcqObj("Which number system uses only 0 and 1?", ["Decimal","Binary","Hexadecimal","Octal"], 1, T5));
+pack.push(mcqObj("What is the base of the binary number system?", ["2","8","10","16"], 0, T5));
+pack.push(mcqObj("What is the binary equivalent of decimal 5?", ["101","100","110","111"], 0, T5));
+pack.push(mcqObj("What does ASCII stand for?", ["American Standard Code for Information Interchange","Advanced System for Character Input","Automated Symbolic Character Integration","Applied Syntax for Code Interpretation"], 0, T5));
+pack.push(mcqObj("How many bits are in a byte?", ["4","8","16","32"], 1, T5));
+pack.push(mcqObj("What is the hexadecimal equivalent of binary 1010?", ["A","B","C","D"], 0, T5));
+pack.push(mcqObj("Which of the following is a character encoding standard?", ["ASCII","JPEG","HTML","CSS"], 0, T5));
+pack.push(mcqObj("What is the purpose of Unicode?", ["Compress images","Encode characters from multiple languages","Format web pages","Encrypt data"], 1, T5));
+pack.push(mcqObj("What is the binary equivalent of decimal 10?", ["1010","1001","1100","1110"], 0, T5));
+pack.push(mcqObj("What is the base of the hexadecimal system?", ["2","8","10","16"], 3, T5));
+pack.push(mcqObj("What is the decimal value of binary 111?", ["5","6","7","8"], 2, T5));
+pack.push(mcqObj("Which of the following is NOT a number system?", ["Binary","Decimal","Hexadecimal","Symbolic"], 3, T5));
+pack.push(mcqObj("What is the binary equivalent of decimal 8?", ["1000","1111","1010","1100"], 0, T5));
+pack.push(mcqObj("What is the purpose of character encoding?", ["To store images","To represent text in binary","To compress files","To display graphics"], 1, T5));
+pack.push(mcqObj("What is the hexadecimal equivalent of decimal 15?", ["F","E","D","C"], 0, T5));
+
+/* TF (15) */
+pack.push(tfObj("Binary uses digits 0 and 1.", true, T5));
+pack.push(tfObj("ASCII is used to encode images.", false, T5));
+pack.push(tfObj("A byte contains 8 bits.", true, T5));
+pack.push(tfObj("Unicode supports multiple languages.", true, T5));
+pack.push(tfObj("Hexadecimal is base 10.", false, T5));
+pack.push(tfObj("The binary equivalent of decimal 2 is 10.", true, T5));
+pack.push(tfObj("ASCII is a character encoding standard.", true, T5));
+pack.push(tfObj("Decimal is base 2.", false, T5));
+pack.push(tfObj("The binary equivalent of decimal 4 is 100.", true, T5));
+pack.push(tfObj("Unicode replaces ASCII for global character support.", true, T5));
+pack.push(tfObj("Binary is used in computer systems.", true, T5));
+pack.push(tfObj("Hexadecimal uses digits 0–9 and letters A–F.", true, T5));
+pack.push(tfObj("A nibble is 8 bits.", false, T5));
+pack.push(tfObj("Character encoding is used to represent text.", true, T5));
+pack.push(tfObj("The binary equivalent of decimal 3 is 11.", true, T5));
+
+/* Short (15) */
+pack.push(shortObj("What is binary?", "A number system using only 0 and 1", T5));
+pack.push(shortObj("What is the base of the decimal system?", "10", T5));
+pack.push(shortObj("What does ASCII stand for?", "American Standard Code for Information Interchange", T5));
+pack.push(shortObj("How many bits are in a byte?", "8", T5));
+pack.push(shortObj("What is the binary equivalent of decimal 6?", "110", T5));
+pack.push(shortObj("What is hexadecimal?", "A base-16 number system using digits 0–9 and letters A–F", T5));
+pack.push(shortObj("What is the purpose of Unicode?", "To encode characters from multiple languages", T5));
+pack.push(shortObj("What is the binary equivalent of decimal 9?", "1001", T5));
+pack.push(shortObj("What is a character encoding standard?", "A system for representing text in binary", T5));
+pack.push(shortObj("What is the hexadecimal equivalent of decimal 12?", "C", T5));
+pack.push(shortObj("What is the decimal value of binary 101?", "5", T5));
+pack.push(shortObj("What is a nibble?", "4 bits", T5));
+pack.push(shortObj("What is the binary equivalent of decimal 7?", "111", T5));
+pack.push(shortObj("What is the purpose of character encoding?", "To represent text in binary format", T5));
+pack.push(shortObj("What is the hexadecimal equivalent of binary 1111?", "F", T5));
+
+/* =========================
+   Topic 6: Computer Systems – Impact and Security (45)
+   (15 MCQ, 15 TF, 15 Short)
+*/
+const T6 = 'Computer Systems – Impact and Security';
+/* MCQ (15) */
+pack.push(mcqObj("Which of the following is a security measure?", ["Strong passwords","Bright screen","Fast processor","Loud speakers"], 0, T6));
+pack.push(mcqObj("What is the purpose of encryption?", ["Speed up processing","Protect data","Display graphics","Store files"], 1, T6));
+pack.push(mcqObj("Which of the following is a type of malware?", ["Firewall","Antivirus","Trojan","Router"], 2, T6));
+pack.push(mcqObj("What does a firewall do?", ["Encrypts data","Blocks unauthorized access","Stores files","Displays websites"], 1, T6));
+pack.push(mcqObj("What is phishing?", ["A type of encryption","A secure login method","A scam to steal personal data","A password manager"], 2, T6));
+pack.push(mcqObj("Which of the following is a benefit of using strong passwords?", ["Faster login","Better graphics","Improved security","Easier sharing"], 2, T6));
+pack.push(mcqObj("What is the impact of computer viruses?", ["Improve performance","Protect data","Damage systems","Speed up networks"], 2, T6));
+pack.push(mcqObj("What does the term “cybersecurity” refer to?", ["Physical security","Network speed","Protection of digital systems","Software updates"], 2, T6));
+pack.push(mcqObj("Which of the following is a privacy concern?", ["Data encryption","Unauthorized data collection","Software installation","Hardware upgrades"], 1, T6));
+pack.push(mcqObj("What is the purpose of antivirus software?", ["Create documents","Block ads","Detect and remove malware","Speed up downloads"], 2, T6));
+pack.push(mcqObj("What is a digital footprint?", ["A type of malware","Your online activity record","A password","A secure login"], 1, T6));
+pack.push(mcqObj("What is the impact of excessive screen time?", ["Improved eyesight","Reduced productivity","Faster typing","Better security"], 1, T6));
+pack.push(mcqObj("What does GDPR stand for?", ["General Data Protection Regulation","Global Digital Privacy Rights","Government Data Privacy Rules","General Device Protection Requirements"], 0, T6));
+pack.push(mcqObj("What is the purpose of two-factor authentication?", ["Speed up login","Increase security","Share passwords","Encrypt files"], 1, T6));
+pack.push(mcqObj("Which of the following is a social impact of technology?", ["Increased data storage","Reduced face-to-face interaction","Faster processors","Better graphics"], 1, T6));
+
+/* TF (15) */
+pack.push(tfObj("Encryption helps protect data from unauthorized access.", true, T6));
+pack.push(tfObj("A firewall is used to store data.", false, T6));
+pack.push(tfObj("Phishing is a method of securing data.", false, T6));
+pack.push(tfObj("Strong passwords improve security.", true, T6));
+pack.push(tfObj("Malware is beneficial software.", false, T6));
+pack.push(tfObj("Antivirus software detects and removes threats.", true, T6));
+pack.push(tfObj("Cybersecurity protects digital systems.", true, T6));
+pack.push(tfObj("Unauthorized data collection is a privacy concern.", true, T6));
+pack.push(tfObj("A digital footprint is your online activity record.", true, T6));
+pack.push(tfObj("Excessive screen time improves productivity.", false, T6));
+pack.push(tfObj("GDPR protects personal data.", true, T6));
+pack.push(tfObj("Two-factor authentication reduces security.", false, T6));
+pack.push(tfObj("Technology has no social impact.", false, T6));
+pack.push(tfObj("A Trojan is a type of malware.", true, T6));
+pack.push(tfObj("Firewalls block unauthorized access.", true, T6));
+
+/* Short (15) */
+pack.push(shortObj("What is the purpose of encryption?", "To protect data from unauthorized access", T6));
+pack.push(shortObj("What is a firewall?", "A system that blocks unauthorized access to a network", T6));
+pack.push(shortObj("What is phishing?", "A scam to trick users into giving personal information", T6));
+pack.push(shortObj("What is malware?", "Malicious software designed to harm or exploit systems", T6));
+pack.push(shortObj("What is antivirus software used for?", "Detecting and removing malware", T6));
+pack.push(shortObj("What is cybersecurity?", "Protection of digital systems and data", T6));
+pack.push(shortObj("What is a digital footprint?", "The record of a person’s online activity", T6));
+pack.push(shortObj("What is the impact of excessive screen time?", "Reduced productivity and potential health issues", T6));
+pack.push(shortObj("What does GDPR stand for?", "General Data Protection Regulation", T6));
+pack.push(shortObj("What is two-factor authentication?", "A security method requiring two forms of verification", T6));
+pack.push(shortObj("What is a strong password?", "A password that is hard to guess and includes a mix of characters", T6));
+pack.push(shortObj("What is a Trojan?", "A type of malware disguised as legitimate software", T6));
+pack.push(shortObj("What is the social impact of technology?", "Changes in communication and interaction patterns", T6));
+pack.push(shortObj("What is unauthorized data collection?", "Gathering personal data without consent", T6));
+pack.push(shortObj("What is the purpose of privacy laws?", "To protect individuals’ personal information", T6));
+
+/* ========== At this point pack.length should reflect all user-provided questions.
+   Count the current number and add filler items (clearly labelled) to reach 360.
+*/
+(function ensure360(){
+  let i = pack.length;
+  const fillerTopic = 'Software Design & Development'; // put extras in topic 1 if needed
+  while(i < 360){
+    const idx = i - 330; // just create distinguishable filler
+    pack.push(mcqObj(`FILLER Q ${i+1}: Which is a filler sample question?`, ["Option A","Option B","Option C","Option D"], 0, fillerTopic));
+    i++;
+  }
+})();
+
+/* Shuffle the pack to avoid blocks by type; store final pack in STATE */
+const FINAL_PACK = shuffle(pack.slice());
+
+/* ================= App State ================= */
+let STATE = {
+  pack: FINAL_PACK,   // 360-question pack
+  current: [],
+  index: 0,
+  score: 0,
+  name: '',
+  answers: [], // {q,user,correct,correctAnswer}
+  selectedOption: null
+};
+
+/* ================= UI helpers & bindings ================= */
+const numQEl = safe('numQ'); if(numQEl) numQEl.addEventListener('change', e=> safe('numQLabel').textContent = `Number of questions: ${e.target.value}`);
+
+const loadBtn = safe('loadPackBtn'); if(loadBtn) loadBtn.addEventListener('click', ()=>{
+  const selected = Array.from(document.querySelectorAll('.topic-item.active')).map(b=>b.dataset.topic);
+  if(selected.length) STATE.current = STATE.pack.filter(q=>selected.includes(q.topic));
+  else STATE.current = [...STATE.pack];
+  STATE.current = shuffle(STATE.current);
+  alert(`${STATE.current.length} questions loaded.`);
+});
+
+const previewBtn = safe('previewBtn'); if(previewBtn) previewBtn.addEventListener('click', ()=> {
+  alert('Sample questions:\n\n' + STATE.pack.slice(0,8).map((q,i)=>`${i+1}) ${q.q}`).join('\n\n'));
+});
+
+const resetBtn = safe('resetBtn'); if(resetBtn) resetBtn.addEventListener('click', ()=> {
+  document.querySelectorAll('.topic-item.active').forEach(b=>b.classList.remove('active'));
+  STATE.current = []; STATE.index=0; STATE.score=0; STATE.answers=[]; STATE.selectedOption=null;
+  hide('quizCard'); hide('resultCard'); if(numQEl) numQEl.value='10'; if(safe('numQLabel')) safe('numQLabel').textContent='Number of questions: 10';
+  if(safe('playerName')) safe('playerName').value=''; alert('Reset done.');
+});
+
+/* Start quiz — robust & no repeats */
+const startBtn = safe('startBtn');
+if(startBtn) startBtn.addEventListener('click', ()=>{
+  try{
+    STATE.name = (safe('playerName') && safe('playerName').value) ? safe('playerName').value.trim() : 'Anonymous';
+    const mode = (safe('answerMode') && safe('answerMode').value) ? safe('answerMode').value : 'mixed';
+    let wanted = (numQEl && parseInt(numQEl.value,10)) || 10;
+
+    if(!Array.isArray(STATE.pack) || STATE.pack.length === 0){ alert('Question pack missing. Reload page.'); return; }
+
+    // Build filtered pool
+    const selectedTopics = Array.from(document.querySelectorAll('.topic-item.active')).map(b=>b.dataset.topic);
+    let pool = selectedTopics.length ? STATE.pack.filter(q=>selectedTopics.includes(q.topic)) : [...STATE.pack];
+
+    // Filter by mode
+    if(mode === 'mcq') pool = pool.filter(q=>q.type === 'mcq');
+    else if(mode === 'short') pool = pool.filter(q=>q.type === 'short');
+    else if(mode === 'tf') pool = pool.filter(q=>q.type === 'tf');
+    // else 'mixed' keeps all types
+
+    if(!pool || pool.length === 0){ alert('No questions match your selection. Try changing topics or mode.'); return; }
+
+    if(wanted > pool.length){
+      if(!confirm(`You requested ${wanted} questions but only ${pool.length} match your filters. Use ${pool.length} instead?`)) return;
+      wanted = pool.length;
+    }
+
+    // Shuffle once and slice — no duplicates in a run
+    STATE.current = shuffle(pool).slice(0, wanted);
+    STATE.index = 0; STATE.score = 0; STATE.answers = []; STATE.selectedOption = null;
+
+    hide('resultCard'); show('quizCard'); updateProgress(); renderQuestion();
+    console.info(`Quiz started: ${STATE.name} | ${STATE.current.length}q | mode=${mode} | topics=${selectedTopics.join(',')||'ALL'}`);
+  } catch(err){
+    alert('An error occurred when starting the quiz — open console for details.');
+    console.error('Start error', err);
+  }
+});
+
+/* Render current question */
+function renderQuestion(){
+  const q = STATE.current[STATE.index];
+  if(!q){ el('questionText').textContent='No question'; el('optionsDiv').innerHTML=''; return; }
+  el('questionText').textContent = q.q;
+  el('qCount').textContent = `Question ${STATE.index+1} / ${STATE.current.length}`;
+  el('scoreNum').textContent = STATE.score;
+  el('qMeta').textContent = `Topic: ${q.topic} | Type: ${q.type.toUpperCase()}`;
+  el('optionsDiv').innerHTML = '';
+  STATE.selectedOption = null;
+  if(safe('submitBtn')) safe('submitBtn').disabled = false;
+
+  if(q.type === 'mcq'){
+    q.opts.forEach((opt,i)=>{
+      const d = document.createElement('div'); d.className='opt'; d.tabIndex=0;
+      d.innerHTML = escapeHtml(opt);
+      d.addEventListener('click', ()=>{
+        document.querySelectorAll('.opt').forEach(x=>x.classList.remove('selected','correct','wrong'));
+        d.classList.add('selected');
+        STATE.selectedOption = i;
+      });
+      d.addEventListener('keydown', (ev)=>{ if(ev.key==='Enter') d.click(); });
+      el('optionsDiv').appendChild(d);
+    });
+  } else if(q.type === 'tf'){
+    ['True','False'].forEach((label,i)=>{
+      const d = document.createElement('div'); d.className='opt'; d.tabIndex=0; d.textContent = label;
+      d.addEventListener('click', ()=>{
+        document.querySelectorAll('.opt').forEach(x=>x.classList.remove('selected','correct','wrong'));
+        d.classList.add('selected'); STATE.selectedOption = (label==='True');
+      });
+      d.addEventListener('keydown', (ev)=>{ if(ev.key==='Enter') d.click(); });
+      el('optionsDiv').appendChild(d);
+    });
+  } else { // short
+    const ta = document.createElement('textarea'); ta.className='short-answer'; ta.placeholder='Type your answer here...';
+    ta.addEventListener('input', e=> STATE.selectedOption = e.target.value);
+    el('optionsDiv').appendChild(ta);
+  }
+
+  // tiny motion to get attention
+  try{ el('questionText').animate([{transform:'scale(1)'},{transform:'scale(1.02)'},{transform:'scale(1)'}],{duration:420,easing:'ease-out'}); }catch(e){}
+}
+
+/* Update progress */
+function updateProgress(){ const pct = Math.round((STATE.index / (STATE.current.length||1)) * 100); if(safe('progress')) safe('progress').style.width = pct + '%'; }
+
+/* Submit handler */
+const submitBtn = safe('submitBtn');
+if(submitBtn) submitBtn.addEventListener('click', ()=>{
+  try{
+    const q = STATE.current[STATE.index];
+    if(!q) return;
+    let user = STATE.selectedOption;
+    let correct = false;
+    if(q.type === 'mcq'){
+      if(typeof user !== 'number'){ alert('Select an option first'); return; }
+      correct = (user === q.a);
+      const opts = document.querySelectorAll('.opt');
+      opts.forEach((elopt, idx)=>{ elopt.classList.remove('correct','wrong'); if(idx === q.a) elopt.classList.add('correct'); if(idx === user && idx !== q.a) elopt.classList.add('wrong'); });
+      // quick border flash for correct/wrong
+      const chosen = opts[user];
+      if(chosen){
+        if(correct){ chosen.style.borderColor = 'green'; setTimeout(()=>chosen.style.borderColor = '', 700); }
+        else { chosen.style.borderColor = 'red'; setTimeout(()=>chosen.style.borderColor = '', 700); }
+      }
+    } else if(q.type === 'tf'){
+      if(typeof user !== 'boolean'){ alert('Select True or False'); return; }
+      correct = (user === !!q.answer);
+      // highlight correct & user as earlier
+      const correctLabel = q.answer ? 'True' : 'False';
+      Array.from(document.querySelectorAll('.opt')).forEach(elopt=>{ elopt.classList.remove('correct','wrong'); if(elopt.textContent === correctLabel) elopt.classList.add('correct'); });
+      if(!correct){
+        const userLabel = user ? 'True' : 'False';
+        Array.from(document.querySelectorAll('.opt')).forEach(elopt=>{ if(elopt.textContent === userLabel) elopt.classList.add('wrong'); });
+        // border flash on wrong selection
+        Array.from(document.querySelectorAll('.opt')).forEach(elopt=>{ if(elopt.textContent === userLabel){ elopt.style.borderColor='red'; setTimeout(()=>elopt.style.borderColor='',700); } });
+      } else {
+        // flash green border on correct option
+        Array.from(document.querySelectorAll('.opt')).forEach(elopt=>{ if(elopt.textContent === correctLabel){ elopt.style.borderColor='green'; setTimeout(()=>elopt.style.borderColor='',700); } });
+      }
+    } else {
+      const userText = (user||'').toString().trim();
+      const correctText = (q.answer||'').toString().trim();
+      if(userText.length === 0){ alert('Type an answer first'); return; }
+      correct = (userText.toLowerCase() === correctText.toLowerCase());
+      const ta = document.querySelector('.short-answer'); if(ta) ta.style.borderColor = correct ? 'green' : 'red';
+      setTimeout(()=>{ if(ta) ta.style.borderColor=''; },700);
+    }
+
+    if(correct){
+      STATE.score++;
+      el('scoreNum').classList.add('bounce'); setTimeout(()=>el('scoreNum').classList.remove('bounce'),320);
+    }
+    const stored = q.type==='mcq' ? q.opts[user] : (q.type==='tf' ? (user ? 'True' : 'False') : (user||''));
+    const correctAnswer = q.type==='mcq' ? q.opts[q.a] : (q.type==='tf' ? (q.answer ? 'True' : 'False') : q.answer);
+    STATE.answers.push({q:q.q, user:stored, correct, correctAnswer});
+    submitBtn.disabled = true;
+
+    setTimeout(()=>{ STATE.index++; updateProgress(); STATE.selectedOption = null; if(STATE.index >= STATE.current.length) endQuiz(); else renderQuestion(); }, 650);
+
+  } catch(err){ console.error('Submit error', err); alert('Error submitting answer — open console.'); }
+});
+
+/* Next/Skip */
+const nextBtn = safe('nextBtn'); if(nextBtn) nextBtn.addEventListener('click', ()=>{
+  const q = STATE.current[STATE.index];
+  if(q) STATE.answers.push({q:q.q, user:'(skipped)', correct:false, correctAnswer: q.type==='mcq'? q.opts[q.a] : (q.type==='tf' ? (q.answer ? 'True':'False') : q.answer)});
+  STATE.index++; updateProgress(); STATE.selectedOption = null;
+  if(STATE.index >= STATE.current.length) endQuiz(); else renderQuestion();
+});
+
+/* End quiz */
+const endBtn = safe('endBtn'); if(endBtn) endBtn.addEventListener('click', ()=>{ if(confirm('End quiz now and view results?')) endQuiz(); });
+
+/* End quiz & feedback */
+function endQuiz(){
+  hide('quizCard');
+  if(safe('finalScore')) safe('finalScore').textContent = `${STATE.score} / ${STATE.current.length}`;
+  const pct = Math.round((STATE.score / (STATE.current.length||1)) * 100);
+  let msg = '';
+  if(pct === 100) msg = 'Perfect score — legend! 🎉';
+  else if(pct >= 85) msg = 'Excellent work! Almost perfect. 👍';
+  else if(pct >= 60) msg = 'Good effort — review the wrong answers and retry! 💪';
+  else msg = 'Keep practising — review the feedback and try again. You got this!';
+  if(safe('encouragement')) safe('encouragement').textContent = msg;
+
+  const fb = STATE.answers.map((ans,i)=>{
+    const idx = i+1;
+    if(ans.correct){
+      return `<div class="feedback-item"><div><strong>Q${idx}:</strong> ${escapeHtml(ans.q)}</div>
+              <div class="feedback-correct">Your answer: ${escapeHtml(ans.user)} — Correct</div></div>`;
+    } else {
+      return `<div class="feedback-item"><div><strong>Q${idx}:</strong> ${escapeHtml(ans.q)}</div>
+              <div class="feedback-wrong">Your answer: ${escapeHtml(ans.user)}</div>
+              <div style="margin-top:8px">Correct answer: <strong>${escapeHtml(ans.correctAnswer)}</strong></div></div>`;
+    }
+  }).join('');
+  if(safe('feedbackDiv')) safe('feedbackDiv').innerHTML = fb || '<div class="small">No answers recorded.</div>';
+  show('resultCard');
+}
+
+/* Retry wrong questions */
+const retryBtn = safe('retryWrongBtn'); if(retryBtn) retryBtn.addEventListener('click', ()=>{
+  const wrongQs = STATE.answers.filter(a=>!a.correct).map(a=>a.q);
+  if(wrongQs.length === 0){ alert('No wrong answers to retry — great job!'); return; }
+  const newCurrent = STATE.pack.filter(p=>wrongQs.includes(p.q));
+  if(newCurrent.length === 0){ alert('Could not rebuild wrong questions.'); return; }
+  STATE.current = shuffle(newCurrent); STATE.index=0; STATE.score=0; STATE.answers=[]; STATE.selectedOption=null;
+  hide('resultCard'); show('quizCard'); updateProgress(); renderQuestion();
+});
+
+/* Save local */
+const saveLocalBtn = safe('saveLocalBtn'); if(saveLocalBtn) saveLocalBtn.addEventListener('click', ()=>{
+  const key = 'nat5_v10_scores';
+  const data = JSON.parse(localStorage.getItem(key)||'[]');
+  data.push({name:STATE.name||'Anonymous', score:STATE.score, total:STATE.current.length, date:new Date().toISOString()});
+  localStorage.setItem(key, JSON.stringify(data));
+  alert('Saved locally.');
+});
+
+/* Restart */
+const restartBtn = safe('restartBtn'); if(restartBtn) restartBtn.addEventListener('click', ()=> {
+  hide('resultCard'); STATE.index=0; STATE.score=0; STATE.answers=[]; STATE.selectedOption=null;
+  if(numQEl) numQEl.value='10'; if(safe('numQLabel')) safe('numQLabel').textContent='Number of questions: 10';
+  show('setupCard');
+});
+
+/* Auto-init small sample */
+(function init(){
+  if(!Array.isArray(STATE.pack) || STATE.pack.length === 0) STATE.pack = FINAL_PACK;
+  STATE.current = shuffle([...STATE.pack]).slice(0,10);
+  if(numQEl) numQEl.value='10'; if(safe('numQLabel')) safe('numQLabel').textContent='Number of questions: 10';
+})();
+</script>
+</body>
+</html>
+
+
